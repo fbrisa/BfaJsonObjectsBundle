@@ -1,0 +1,47 @@
+{% extends '::base.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {#<script src="{{ asset('bundles/app/js/produzione/produzione.js') }}"></script>#}
+{% endblock %}
+
+
+
+
+
+{% block title %}test json{% endblock %}
+
+{% block body %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <h4>Test json</h4>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12 text-center"> 
+                {{ form_start(form,{attr: {'autocomplete':'off'} }) }}
+                {{ form_errors(form) }}
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form_row(form.entityname, { 'style': 'horizontal' }) }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ form_row(form.id, { 'style': 'horizontal' }) }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ form_row(form.deep, { 'style': 'horizontal' }) }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ form_row(form.invia,{'attr': {'class':'btn-block'}}) }}
+                    </div>
+                </div>
+                {{ form_end(form) }}
+            </div> 
+	        </div>
+    </div>
+{% endblock %}

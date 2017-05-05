@@ -1,0 +1,6 @@
+services:
+    bfa.helper.JsonHelper:
+        class: Bfa\JsonObjectsBundle\Helper\JsonHelper
+        arguments:
+            - "@doctrine.orm.entity_manager"
+        

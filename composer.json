@@ -1,0 +1,24 @@
+{
+    "name" : "bfa/jsonobjectsbundle",
+    "description" : "A bundle to get json and array from entities",
+    "type" : "symfony-bundle",
+    "authors" : [{
+        "name" : "Francesco Angelo Brisa",
+        "email" : "fbrisa@gmail.com"
+    }],
+    "keywords" : [
+        "json array entity bundle"
+    ],
+    "license" : [
+        "GPL"
+    ],
+    "require" : {
+        
+    },
+    "autoload" : {
+        "psr-0" : {
+            "Bfa\\JsonObjectsBundle" : ""
+        }
+    },
+    "target-dir" : "Bfa/JsonObjectsBundle"
+}
