@@ -50,11 +50,25 @@ class JsonHelper {
         return null;
     }
 
-    private static function toArrayFn_($oggetto, $em, $deep, $arrivoDa = null) {
-        $r = $em->getRepository(get_class($oggetto));
+	/**
+	 * 
+	 * @param type $oggetto
+	 * @param type $em
+	 * @return \Doctrine\ORM\Mapping\ClassMetadata
+	 */
+	public static function getClassMetaData($oggetto, $em) {
+		$r = $em->getRepository(get_class($oggetto));
         $cn = $r->getClassName();
-        $cmd = $em->getClassMetadata($cn); /* @var $cmd \Doctrine\ORM\Mapping\ClassMetadata */
+        return $em->getClassMetadata($cn); 
         //$an=$cmd->getAssociationNames();
+		
+	}
+	
+    private static function toArrayFn_($oggetto, $em, $deep, $arrivoDa = null) {
+        $cmd = self::getClassMetaData($oggetto,$em);
+		/* @var $cmd \Doctrine\ORM\Mapping\ClassMetadata */
+        
+		//$an=$cmd->getAssociationNames();
         $fn = $cmd->getFieldNames();
         $associationMappings = $cmd->getAssociationMappings();
 
@@ -74,7 +88,7 @@ class JsonHelper {
                     $a[$key] = $oggetto->$method();
 
                     if ($a[$key] != null) {
-                        if ($type == "datetime") {
+                        if ($type == "datetime" || $type == "date") {
                             $a[$key] = $a[$key]->format('c');
                         }
                     }
@@ -95,6 +109,10 @@ class JsonHelper {
                     $oggetto_ = $oggetto->$method();
                     if ($oggetto_) {
                         if ($oggetto_ != $arrivoDa) {
+                            if ($ass['type'] == 1) {
+                                // ENTITY
+                                $a[$key] = JsonHelper::toArrayFn_($oggetto_, $em, $deep - 1, $oggetto);
+                            }
                             if ($ass['type'] == 2) {
                                 // ENTITY
                                 $a[$key] = JsonHelper::toArrayFn_($oggetto_, $em, $deep - 1, $oggetto);
@@ -144,7 +162,7 @@ class JsonHelper {
         }
     }
 
-    public static function fromArray(&$oggetto, $arrayConDati, \Doctrine\ORM\EntityManager $em) {
+    public static function fromArray($oggetto, $arrayConDati, \Doctrine\ORM\EntityManager $em) {
         $accessor = \Symfony\Component\PropertyAccess\PropertyAccess::createPropertyAccessor();
 
         $r = $em->getRepository(get_class($oggetto));
@@ -195,18 +213,14 @@ class JsonHelper {
 
                     $r = $em->getRepository($assmap["targetEntity"]);
                     //$cn=$r->getClassName();
-                    
-                    if (!is_array($value)) {
-                    
-                        $objInstance = $r->find($value);
+                    $objInstance = $r->find($value);
 
-                        $method = sprintf('set%s', ucwords($nomeCampo));
-                        //$oggetto->{$key}=$value;                
-                        if ($reflectionObject->hasMethod($method)) {
-                            $oggetto->$method($objInstance);
-                        } else {
-                            $non = "non trovo metodo:" + $method;
-                        }
+                    $method = sprintf('set%s', ucwords($nomeCampo));
+                    //$oggetto->{$key}=$value;                
+                    if ($reflectionObject->hasMethod($method)) {
+                        $oggetto->$method($objInstance);
+                    } else {
+                        $non = "non trovo metodo:" + $method;
                     }
                 } else {
 
@@ -214,6 +228,18 @@ class JsonHelper {
 
                     if ($nomeCampo != $nomeColonnaId) {
                         if ($type == "datetime") {
+
+                            if ($value == null || $value == "") {
+                                if ($nullable) {
+                                    $value = null;
+                                } else {
+                                    $value = new \DateTime($value);
+                                }
+                            } else {
+                                $value = new \DateTime($value);
+                            }
+                        }
+                        if ($type == "date") {
 
                             if ($value == null || $value == "") {
                                 if ($nullable) {
