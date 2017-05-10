@@ -108,6 +108,20 @@ class JsonObjsController extends Controller {
 	private function carica($entityname, $from = 1, $to = 1, $deep = 0) {
 		$em = $this->getDoctrine()->getManager();
 
+                $meta = $em->getMetadataFactory()->getAllMetadata();
+		foreach ($meta as $m) {
+			/* @var $m  \Doctrine\ORM\Mapping\ClassMetadata  */
+
+			$cleanClassName = str_replace('\\Entity', '\:', $m->getName());
+			$parts = explode('\\', $cleanClassName);
+			$className = implode('', $parts);
+
+                        if ($className==$entityname) {
+                            $entityname=$m->getName();
+                            break;
+                        }
+		}                
+                
 		$r = $em->getRepository($entityname);
 		$cn = $r->getClassName();
 		$cmd = $em->getClassMetadata($cn);
