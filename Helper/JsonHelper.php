@@ -162,18 +162,22 @@ class JsonHelper {
         }
     }
 
-    public static function fromArray($oggetto, $arrayConDati, \Doctrine\ORM\EntityManager $em) {
+    public static function fromArray($oggetto, $arrayConDati, \Doctrine\ORM\EntityManager $em,$cmd=null,$nomeColonnaId=null) {
         $accessor = \Symfony\Component\PropertyAccess\PropertyAccess::createPropertyAccessor();
 
-        $r = $em->getRepository(get_class($oggetto));
-        $cn = $r->getClassName();
-        $cmd = $em->getClassMetadata($cn); /* @var $cmd \Doctrine\ORM\Mapping\ClassMetadata */
+        if ($cmd==null) {            
+            $r = $em->getRepository(get_class($oggetto));
+            $cn = $r->getClassName();
+            $cmd = $em->getClassMetadata($cn); /* @var $cmd \Doctrine\ORM\Mapping\ClassMetadata */
+        }
 
 
         $reflectionObject = new \ReflectionObject($oggetto);
 
-        $identifier = $cmd->getIdentifierFieldNames();
-        $nomeColonnaId = $identifier[0];
+        if ($nomeColonnaId==null) {
+            $identifier = $cmd->getIdentifierFieldNames();
+            $nomeColonnaId = $identifier[0];
+        }
 
 
         //$associationMappings = $cmd->getAssociationMappings();
