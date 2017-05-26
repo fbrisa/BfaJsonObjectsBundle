@@ -6,11 +6,7 @@
 
 {% block javascripts %}
     {{ parent() }}
-    {#<script src="{{ asset('bundles/app/js/produzione/produzione.js') }}"></script>#}
 {% endblock %}
-
-
-
 
 
 {% block title %}test json{% endblock %}
@@ -18,12 +14,12 @@
 {% block body %}
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-12 text-center">
+            <div class="col-md-12">
                 <h4>Test json</h4>
             </div>
         </div>
         <div class="row">
-            <div class="col-md-12 text-center"> 
+            <div class="col-md-12"> 
                 {{ form_start(form,{attr: {'autocomplete':'off'} }) }}
                 {{ form_errors(form) }}
                 <div class="row">
@@ -37,7 +33,10 @@
                         {{ form_row(form.deep, { 'style': 'horizontal' }) }}
                     </div>
                     <div class="col-md-2">
-                        {{ form_row(form.invia,{'attr': {'class':'btn-block'}}) }}
+						<div class="form-group">
+							<label class="control-label">&nbsp;</label>
+							{{ form_widget(form.invia,{'attr': {'class':'btn-block'}}) }}
+						</div>
                     </div>
                 </div>
                 {{ form_end(form) }}
