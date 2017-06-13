@@ -213,18 +213,25 @@ class JsonHelper {
                 if (array_key_exists($nomeCampo, $cmd->associationMappings)) {
                     // mappato, quindi carico la corrispondente entity
 
-                    $assmap = $cmd->associationMappings[$nomeCampo];
+                    if (!is_array($value)) {
+                        // va lasciato in quanto $value potrebbe essere un array che deve poi quindi essere gestito appropriatamente.. TO DO
+                        
+                        $assmap = $cmd->associationMappings[$nomeCampo];
 
-                    $r = $em->getRepository($assmap["targetEntity"]);
-                    //$cn=$r->getClassName();
-                    $objInstance = $r->find($value);
+                        $r = $em->getRepository($assmap["targetEntity"]);
+                        //$cn=$r->getClassName();
+                        $objInstance = $r->find($value);
 
-                    $method = sprintf('set%s', ucwords($nomeCampo));
-                    //$oggetto->{$key}=$value;                
-                    if ($reflectionObject->hasMethod($method)) {
-                        $oggetto->$method($objInstance);
+                        $method = sprintf('set%s', ucwords($nomeCampo));
+                        //$oggetto->{$key}=$value;                
+                        if ($reflectionObject->hasMethod($method)) {
+                            $oggetto->$method($objInstance);
+                        } else {
+                            $non = "non trovo metodo:" + $method;
+                        }
                     } else {
-                        $non = "non trovo metodo:" + $method;
+                        // $value e' quindi un array, che faccio ?
+                        
                     }
                 } else {
 
