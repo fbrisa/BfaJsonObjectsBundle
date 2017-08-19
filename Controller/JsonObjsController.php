@@ -178,13 +178,11 @@ class JsonObjsController extends Controller {
 						$objs = $query->getScalarResult();
 
 						if (count($objs) >= (-$id)) {
-							$idIniziale = $objs[-$id - 1][$identifiers[0]];
-						} else {
-							$idIniziale = $objs[count($objs)-1][$identifiers[0]];
-						}
 
-						$idFinale = $objs[0][$identifiers[0]];
-						return $this->carica($entityname, $idIniziale, $idFinale , $deep);
+							$idF = $objs[-$id - 1][$identifiers[0]];
+
+							return $this->carica($entityname, $idF, $idF, $deep);
+						}
 					} catch (\Doctrine\ORM\NoResultException $e) {
 						
 					}
