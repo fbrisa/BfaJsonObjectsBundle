@@ -47,6 +47,26 @@ class JsonHelper {
             }
         }
 
+		// magari e' un boolean....
+		$method = sprintf('is%s', ucwords($key));
+        if ($reflectionObject->hasMethod($method)) {
+            return $method;
+        } else {
+            // cerco senza _
+            $key = str_replace('_', '', $key);
+            $method = sprintf('is%s', ucwords($key));
+
+            if ($reflectionObject->hasMethod($method)) {
+                return $method;
+            } else {
+                // senza ucwords
+                $method = sprintf('is%s', $key);
+                if ($reflectionObject->hasMethod($method)) {
+                    return $method;
+                }
+            }
+        }
+
         return null;
     }
 
@@ -64,7 +84,10 @@ class JsonHelper {
 		
 	}
 	
-    private static function toArrayFn_($oggetto, $em, $deep, $arrivoDa = null) {
+    private static function toArrayFn_($oggetto, $em, $deep, $arrivoDa = null,$includeArray=true) {
+		if ($oggetto==null) {
+			return [];
+		}
         $cmd = self::getClassMetaData($oggetto,$em);
 		/* @var $cmd \Doctrine\ORM\Mapping\ClassMetadata */
         
@@ -72,8 +95,8 @@ class JsonHelper {
         $fn = $cmd->getFieldNames();
         $associationMappings = $cmd->getAssociationMappings();
 
-        $identifier = $cmd->getIdentifier();
-        $nomeColonnaId = $identifier[0];
+//		  $identifier = $cmd->getIdentifier();
+//        $nomeColonnaId = $identifier[0];
 
         $reflectionObject = new \ReflectionObject($oggetto);
 
@@ -94,6 +117,7 @@ class JsonHelper {
                     }
                 } else {
                     // metodo non trovato !
+					$method=$method;
                 }
 
 
@@ -111,18 +135,20 @@ class JsonHelper {
                         if ($oggetto_ != $arrivoDa) {
                             if ($ass['type'] == 1) {
                                 // ENTITY
-                                $a[$key] = JsonHelper::toArrayFn_($oggetto_, $em, $deep - 1, $oggetto);
+                                $a[$key] = JsonHelper::toArrayFn_($oggetto_, $em, $deep - 1, $oggetto,$includeArray);
                             }
                             if ($ass['type'] == 2) {
                                 // ENTITY
-                                $a[$key] = JsonHelper::toArrayFn_($oggetto_, $em, $deep - 1, $oggetto);
+                                $a[$key] = JsonHelper::toArrayFn_($oggetto_, $em, $deep - 1, $oggetto,$includeArray);
                             }
                             if ($ass['type'] == 4) {
                                 // ARRAY
                                 $a[$key] = array();
+								if ($includeArray) {
                                 foreach ($oggetto_ as $o_) {
-                                    $a[$key][] = JsonHelper::toArrayFn_($o_, $em, $deep - 1, $oggetto);
+										$a[$key][] = JsonHelper::toArrayFn_($o_, $em, $deep - 1, $oggetto,$includeArray);
                                 }
+                            }
                             }
                         } else {
                             
@@ -137,21 +163,21 @@ class JsonHelper {
         return $a;
     }
 
-    private static function toArrayFn($oggetto, $em, $deep) {
+    private static function toArrayFn($oggetto, $em, $deep,$includeArray=true) {
         if (is_array($oggetto) || $oggetto instanceof \Doctrine\ORM\PersistentCollection || $oggetto instanceof \Doctrine\Common\Collections\ArrayCollection) {
             $res = array();
             foreach ($oggetto as $obj) {
-                $res[] = JsonHelper::toArrayFn_($obj, $em, $deep);
+                $res[] = JsonHelper::toArrayFn_($obj, $em, $deep,null,$includeArray);
             }
             
             return $res;
         } else {
-            return JsonHelper::toArrayFn_($oggetto, $em, $deep);
+            return JsonHelper::toArrayFn_($oggetto, $em, $deep,null,$includeArray);
         }
     }
 
-    public static function toArrayEM($oggetto, \Doctrine\ORM\EntityManager $em, $deep = 0) {
-        return self::toArrayFn($oggetto, $em, $deep);
+    public static function toArrayEM($oggetto, \Doctrine\ORM\EntityManager $em, $deep = 0,$includeArray=true) {
+        return self::toArrayFn($oggetto, $em, $deep,$includeArray);
     }
 
     public function toArray($oggetto, $deep = 0) {
@@ -166,17 +192,17 @@ class JsonHelper {
         $accessor = \Symfony\Component\PropertyAccess\PropertyAccess::createPropertyAccessor();
 
         if ($cmd==null) {            
-            $r = $em->getRepository(get_class($oggetto));
-            $cn = $r->getClassName();
-            $cmd = $em->getClassMetadata($cn); /* @var $cmd \Doctrine\ORM\Mapping\ClassMetadata */
+        $r = $em->getRepository(get_class($oggetto));
+        $cn = $r->getClassName();
+        $cmd = $em->getClassMetadata($cn); /* @var $cmd \Doctrine\ORM\Mapping\ClassMetadata */
         }
 
 
         $reflectionObject = new \ReflectionObject($oggetto);
 
         if ($nomeColonnaId==null) {
-            $identifier = $cmd->getIdentifierFieldNames();
-            $nomeColonnaId = $identifier[0];
+        $identifier = $cmd->getIdentifierFieldNames();
+        $nomeColonnaId = $identifier[0];
         }
 
 
@@ -213,25 +239,35 @@ class JsonHelper {
                 if (array_key_exists($nomeCampo, $cmd->associationMappings)) {
                     // mappato, quindi carico la corrispondente entity
 
-                    if (!is_array($value)) {
-                        // va lasciato in quanto $value potrebbe essere un array che deve poi quindi essere gestito appropriatamente.. TO DO
-                        
-                        $assmap = $cmd->associationMappings[$nomeCampo];
+                    $assmap = $cmd->associationMappings[$nomeCampo];
 
-                        $r = $em->getRepository($assmap["targetEntity"]);
-                        //$cn=$r->getClassName();
-                        $objInstance = $r->find($value);
+                    $r = $em->getRepository($assmap["targetEntity"]);
+                    //$cn=$r->getClassName();
+					
+					if (is_array($value)) {
+						
+						$cnA = $r->getClassName();
+						$cmdA = $em->getClassMetadata($cnA); /* @var $cmd \Doctrine\ORM\Mapping\ClassMetadata */
+						$idents=$cmdA->getIdentifier();
+						if (count($idents)>0) {
+							
+							if (isset( $value[$idents[0]])) {
+								$objInstance = $r->find($value[$idents[0]]);
 
-                        $method = sprintf('set%s', ucwords($nomeCampo));
-                        //$oggetto->{$key}=$value;                
-                        if ($reflectionObject->hasMethod($method)) {
-                            $oggetto->$method($objInstance);
-                        } else {
-                            $non = "non trovo metodo:" + $method;
-                        }
+							}
+						}
+					} else {
+                    $objInstance = $r->find($value);
+					}
+
+					
+
+                    $method = sprintf('set%s', ucwords($nomeCampo));
+                    //$oggetto->{$key}=$value;                
+                    if ($reflectionObject->hasMethod($method)) {
+                        $oggetto->$method($objInstance);
                     } else {
-                        // $value e' quindi un array, che faccio ?
-                        
+                        $non = "non trovo metodo:" + $method;
                     }
                 } else {
 
@@ -262,6 +298,21 @@ class JsonHelper {
                                 $value = new \DateTime($value);
                             }
                         }
+						
+                        if ($type == "boolean") {
+
+                            if ($value == null || $value == "") {
+                                if ($nullable) {
+                                    $value = null;
+                                } else {
+                                    $value = false;
+                                }
+                            } else {
+								$low=strtolower($value);
+                                $value = ($low=='true' || $low=='1' || $low=='t' || $low=='y' || $low=='s' || $low=='yes' || $low=='si');
+                            }
+                        }
+						
                         $accessor->setValue($oggetto, $nomeCampo, $value);
                     }
                 }
