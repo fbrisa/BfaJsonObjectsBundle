@@ -26,6 +26,20 @@ class JsonHelper {
 		$this->em = $em;
 	}
 
+	private static function startsWith($haystack, $needle)
+	{
+		 $length = strlen($needle);
+		 return (substr($haystack, 0, $length) === $needle);
+	}
+
+	private static function endsWith($haystack, $needle)
+	{
+		$length = strlen($needle);
+
+		return $length === 0 || 
+		(substr($haystack, -$length) === $needle);
+	}
+	
 	private static function _getGetMethod($oggetto, \ReflectionObject $reflectionObject, $key) {
 
 		$method = sprintf('get%s', ucwords($key));
@@ -66,6 +80,80 @@ class JsonHelper {
 				}
 			}
 		}
+
+		// magari senza niente di aggiuntivo
+		if ($reflectionObject->hasMethod($key)) {
+			return $key;
+		}
+
+		return null;
+	}
+	private static function _getAddMethod($oggetto, \ReflectionObject $reflectionObject, $key) {
+
+		$method = sprintf('add%s', ucwords($key));
+		if ($reflectionObject->hasMethod($method)) {
+			return $method;
+		} elseif ( JsonHelper::endsWith ( $key,"s") && strlen($key)>1) {
+			$keyWithousS= substr($key, 0, strlen($key)-1);
+			$method = sprintf('add%s', ucwords($keyWithousS));
+			if ($reflectionObject->hasMethod($method)) {
+				return $method;
+			}
+		} else {
+			// cerco senza _
+			$key = str_replace('_', '', $key);
+			$method = sprintf('add%s', ucwords($key));
+
+			if ($reflectionObject->hasMethod($method)) {
+				return $method;
+			} else {
+				// senza ucwords
+				$method = sprintf('add%s', $key);
+				if ($reflectionObject->hasMethod($method)) {
+					return $method;
+				}
+			}
+		}
+
+	
+		
+
+		// magari senza niente di aggiuntivo
+		if ($reflectionObject->hasMethod($key)) {
+			return $key;
+		}
+
+		return null;
+	}
+	private static function _getRemoveMethod($oggetto, \ReflectionObject $reflectionObject, $key) {
+
+		$method = sprintf('remove%s', ucwords($key));
+		if ($reflectionObject->hasMethod($method)) {
+			return $method;
+		} elseif ( JsonHelper::endsWith ( $key,"s") && strlen($key)>1) {
+			$keyWithousS= substr($key, 0, strlen($key)-1);
+			$method = sprintf('remove%s', ucwords($keyWithousS));
+			if ($reflectionObject->hasMethod($method)) {
+				return $method;
+			}
+		} else {
+			// cerco senza _
+			$key = str_replace('_', '', $key);
+			$method = sprintf('remove%s', ucwords($key));
+
+			if ($reflectionObject->hasMethod($method)) {
+				return $method;
+			} else {
+				// senza ucwords
+				$method = sprintf('remove%s', $key);
+				if ($reflectionObject->hasMethod($method)) {
+					return $method;
+				}
+			}
+		}
+
+	
+		
 
 		// magari senza niente di aggiuntivo
 		if ($reflectionObject->hasMethod($key)) {
@@ -499,8 +587,9 @@ class JsonHelper {
 
 								if (!$trovato) {
 									// non trovato, va aggiunto
-
-									$method = sprintf('add%s', ucwords($nomeCampo));
+									$method = JsonHelper::_getAddMethod($objInstance, $reflectionObject, $nomeCampo);
+									
+//									$method =  sprintf('add%s', ucwords($nomeCampo));
 									//$oggetto->{$key}=$value;                
 									if ($reflectionObject->hasMethod($method)) {
 										$oggetto->$method($objInstance);
@@ -509,6 +598,45 @@ class JsonHelper {
 									}
 								}
 							}
+							
+							// vedo quali rimuovere
+							foreach ($elencoOra as $attuale) {
+								$ident = self::getIdentifierByRepository($r, $em);
+								
+								$trovato=false;
+								foreach ($value as $viter) {
+									$objInstance = self::caricaOggettoDaStruttura($viter, $r, $em);
+									
+									
+									$cn2 = $r->getClassName();
+									$cmd2 = $em->getClassMetadata($cn2);
+									/* @var $cmd \Doctrine\ORM\Mapping\ClassMetadata */
+									$vidAss = $cmd2->getIdentifierValues($attuale);
+									if (isSet($vidAss[$ident])) {
+										$vid = $vidAss[$ident];
+										if ($vid == $viter[$ident]) {
+											$trovato = true;
+											break;
+										}
+									}
+								}
+								
+								if (! $trovato) {
+									// non trovato, va aggiunto
+									$method = JsonHelper::_getRemoveMethod($objInstance, $reflectionObject, $nomeCampo);
+									
+//									$method =  sprintf('add%s', ucwords($nomeCampo));
+									//$oggetto->{$key}=$value;                
+									if ($reflectionObject->hasMethod($method)) {
+										
+										
+										$oggetto->$method($attuale);
+									} else {
+										$non = "non trovo metodo:$method";
+									}
+								}
+							}
+							
 						} else {
 							$objInstance = self::caricaOggettoDaStruttura($value, $r, $em);
 						}
